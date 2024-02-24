@@ -46,7 +46,7 @@ func (s *Server) Start() {
 
 func (s *Server) handler(conn net.Conn) {
 	defer conn.Close()
-	conn.Write([]byte("Welcome to the minichat Sever.\n"))
+	// conn.Write([]byte(fmt.Sprintf("Welcome %s\n", conn.RemoteAddr().String())))
 
 	user := user.New(conn.RemoteAddr().String(), conn)
 
@@ -88,7 +88,7 @@ func (s *Server) handler(conn net.Conn) {
 
 			// 存储新用户
 			s.OnlineClient.Store(user.Name, user.Conn)
-			conn.Write([]byte("修改用户成功!\n"))
+			// conn.Write([]byte("修改用户成功!\n"))
 		}
 	}
 }
