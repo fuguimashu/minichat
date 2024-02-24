@@ -3,7 +3,7 @@ package server
 import (
 	"fmt"
 	"io"
-	"minichat/internal/client"
+	"minichat/internal/user"
 	"net"
 	"strings"
 	"sync"
@@ -48,9 +48,9 @@ func (s *Server) handler(conn net.Conn) {
 	defer conn.Close()
 	conn.Write([]byte("Welcome to the minichat Sever.\n"))
 
-	client := client.New(conn.RemoteAddr().String(), conn)
+	user := user.New(conn.RemoteAddr().String(), conn)
 
-	s.OnlineClient.Store(client.Name, client.Conn)
+	s.OnlineClient.Store(user.Name, user.Conn)
 
 	buf := make([]byte, 4096)
 
@@ -63,8 +63,8 @@ func (s *Server) handler(conn net.Conn) {
 		}
 
 		if n == 0 {
-			fmt.Println(client.Name + " 离开了")
-			s.OnlineClient.Delete(client.Name)
+			fmt.Println(user.Name + " 离开了")
+			s.OnlineClient.Delete(user.Name)
 			return
 		}
 
@@ -80,14 +80,14 @@ func (s *Server) handler(conn net.Conn) {
 		// '/rename 张三' 修改用户名
 		if string(buf)[0] == '/' && string(buf)[1:7] == "rename" {
 			// 删除旧的key
-			s.OnlineClient.Delete(client.Name)
+			s.OnlineClient.Delete(user.Name)
 
 			// 新用户名
-			client.Name = strings.Split(string(buf[:n]), " ")[1]
-			client.Name = strings.Trim(client.Name, "\r\n")
+			user.Name = strings.Split(string(buf[:n]), " ")[1]
+			user.Name = strings.Trim(user.Name, "\r\n")
 
 			// 存储新用户
-			s.OnlineClient.Store(client.Name, client.Conn)
+			s.OnlineClient.Store(user.Name, user.Conn)
 			conn.Write([]byte("修改用户成功!\n"))
 		}
 	}
