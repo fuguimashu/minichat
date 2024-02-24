@@ -13,14 +13,20 @@ type Server struct {
 	Ip           string
 	Port         int
 	OnlineClient sync.Map
+	Message      chan string
 }
 
 func New(ip string, port int) *Server {
-	return &Server{
+	s := &Server{
 		Ip:           ip,
 		Port:         port,
 		OnlineClient: sync.Map{},
+		Message:      make(chan string),
 	}
+
+	go s.ListenChat()
+
+	return s
 }
 
 func (s *Server) Start() {
@@ -50,7 +56,7 @@ func (s *Server) handler(conn net.Conn) {
 
 	user := user.New(conn.RemoteAddr().String(), conn)
 
-	s.OnlineClient.Store(user.Name, user.Conn)
+	s.OnlineClient.Store(user.Name, user)
 
 	buf := make([]byte, 4096)
 
@@ -68,6 +74,11 @@ func (s *Server) handler(conn net.Conn) {
 			return
 		}
 
+		// '/c' hello,world 公聊
+		if string(buf)[0] == '/' && string(buf)[1:2] == "c" {
+			s.Message <- string(buf)[2:n] //error
+		}
+
 		// '/who' 显示在线用户
 		if string(buf)[0] == '/' && string(buf)[1:4] == "who" {
 			s.OnlineClient.Range(func(key, value any) bool {
@@ -79,6 +90,12 @@ func (s *Server) handler(conn net.Conn) {
 
 		// '/rename 张三' 修改用户名
 		if string(buf)[0] == '/' && string(buf)[1:7] == "rename" {
+
+			// '/rename ' 用户名不为空
+			if len(strings.Split(string(buf[:n]), " ")) <= 1 {
+				continue
+			}
+
 			// 删除旧的key
 			s.OnlineClient.Delete(user.Name)
 
@@ -87,8 +104,22 @@ func (s *Server) handler(conn net.Conn) {
 			user.Name = strings.Trim(user.Name, "\r\n")
 
 			// 存储新用户
-			s.OnlineClient.Store(user.Name, user.Conn)
+			s.OnlineClient.Store(user.Name, user)
 			// conn.Write([]byte("修改用户成功!\n"))
 		}
+	}
+}
+
+func (s *Server) ListenChat() {
+
+	for {
+		message := <-s.Message
+		s.OnlineClient.Range(func(key, value any) bool {
+			u, ok := s.OnlineClient.Load(key)
+			if ok {
+				u.(*user.User).Ch <- fmt.Sprintf("[%s]%s", key, message)
+			}
+			return ok
+		})
 	}
 }
