@@ -14,7 +14,7 @@ go run cmd/client/main.go
 
 ## 客户端命令
 - /who 
-    显示在线用户名称
+    - 显示在线用户名称
 - /rename 张三
-    更改用户名 
+    - 更改用户名 
 
