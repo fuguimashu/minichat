@@ -7,6 +7,7 @@ import (
 	"net"
 	"strings"
 	"sync"
+	"time"
 )
 
 type Server struct {
@@ -76,7 +77,7 @@ func (s *Server) handler(conn net.Conn) {
 
 		// '/c' hello,world 公聊
 		if string(buf)[0] == '/' && string(buf)[1:2] == "c" {
-			s.Message <- string(buf)[2:n] //error
+			s.Message <- fmt.Sprintf("[%s %s]%s", time.Now().Format("2006-01-02 15:04:05"), user.Name, string(buf)[2:n])
 		}
 
 		// '/who' 显示在线用户
@@ -117,7 +118,7 @@ func (s *Server) ListenChat() {
 		s.OnlineClient.Range(func(key, value any) bool {
 			u, ok := s.OnlineClient.Load(key)
 			if ok {
-				u.(*user.User).Ch <- fmt.Sprintf("[%s]%s", key, message)
+				u.(*user.User).Ch <- message
 			}
 			return ok
 		})
