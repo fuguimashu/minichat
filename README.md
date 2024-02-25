@@ -13,11 +13,11 @@ go run cmd/client/main.go
 ```
 
 ## 客户端命令
-- /who 
+- `/who`
     - 显示在线用户名称
-- /rename 张三
+- `/rename 张三`
     - 更改用户名
-- /c hello,world.
+- `/c hello,world.`
     - 公聊
 
 ## 数据格式
