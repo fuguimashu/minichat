@@ -3,11 +3,12 @@ package server
 import (
 	"fmt"
 	"io"
-	"minichat/internal/user"
 	"net"
 	"strings"
 	"sync"
 	"time"
+
+	"minichat/internal/user"
 )
 
 type Server struct {
@@ -55,9 +56,9 @@ func (s *Server) handler(conn net.Conn) {
 	defer conn.Close()
 	// conn.Write([]byte(fmt.Sprintf("Welcome %s\n", conn.RemoteAddr().String())))
 
-	user := user.New(conn.RemoteAddr().String(), conn)
+	currentUser := user.New(conn.RemoteAddr().String(), conn)
 
-	s.OnlineClient.Store(user.Name, user)
+	s.OnlineClient.Store(currentUser.Name, currentUser)
 
 	buf := make([]byte, 4096)
 
@@ -70,14 +71,25 @@ func (s *Server) handler(conn net.Conn) {
 		}
 
 		if n == 0 {
-			fmt.Println(user.Name + " 离开了")
-			s.OnlineClient.Delete(user.Name)
+			fmt.Println(currentUser.Name + " 离开了")
+			s.OnlineClient.Delete(currentUser.Name)
 			return
 		}
 
 		// '/c' hello,world 公聊
 		if string(buf)[0] == '/' && string(buf)[1:2] == "c" {
-			s.Message <- fmt.Sprintf("[%s %s]%s", time.Now().Format("2006-01-02 15:04:05"), user.Name, string(buf)[2:n])
+			s.Message <- fmt.Sprintf("[%s %s] %s", time.Now().Format("2006-01-02 15:04:05"), currentUser.Name, string(buf)[2:n])
+		}
+
+		// '/m username' how are your? 私聊
+		if string(buf)[0] == '/' && string(buf)[1:2] == "m" {
+			peer := strings.Split(string(buf[:n]), " ")[1]
+			if u, ok := s.OnlineClient.Load(peer); ok {
+				// fmt.Println(u.(*user.User))
+				msg := fmt.Sprintf("[%s %s] %s", time.Now().Format("2006-01-02 15:04:05"), currentUser.Name, strings.Split(string(buf[:n]), " ")[2])
+				u.(*user.User).Conn.Write([]byte(msg))
+			}
+
 		}
 
 		// '/who' 显示在线用户
@@ -98,14 +110,14 @@ func (s *Server) handler(conn net.Conn) {
 			}
 
 			// 删除旧的key
-			s.OnlineClient.Delete(user.Name)
+			s.OnlineClient.Delete(currentUser.Name)
 
 			// 新用户名
-			user.Name = strings.Split(string(buf[:n]), " ")[1]
-			user.Name = strings.Trim(user.Name, "\r\n")
+			currentUser.Name = strings.Split(string(buf[:n]), " ")[1]
+			currentUser.Name = strings.Trim(currentUser.Name, "\r\n")
 
 			// 存储新用户
-			s.OnlineClient.Store(user.Name, user)
+			s.OnlineClient.Store(currentUser.Name, currentUser)
 			// conn.Write([]byte("修改用户成功!\n"))
 		}
 	}

@@ -19,6 +19,8 @@ go run cmd/client/main.go
     - 更改用户名
 - `/c hello,world.`
     - 公聊
+- `/m username hello,world`
+    - 私聊
 
 ## 数据格式
 ```bash
