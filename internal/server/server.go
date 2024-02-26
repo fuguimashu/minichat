@@ -72,6 +72,7 @@ func (s *Server) handler(conn net.Conn) {
 
 		if n == 0 {
 			fmt.Println(currentUser.Name + " 离开了")
+			s.Message <- currentUser.Name + " 下线\n"
 			s.OnlineClient.Delete(currentUser.Name)
 			return
 		}
