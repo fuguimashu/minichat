@@ -78,16 +78,20 @@ func (s *Server) handler(conn net.Conn) {
 
 		// '/c' hello,world 公聊
 		if string(buf)[0] == '/' && string(buf)[1:2] == "c" {
-			s.Message <- fmt.Sprintf("[%s %s] %s", time.Now().Format("2006-01-02 15:04:05"), currentUser.Name, string(buf)[2:n])
+			s.Message <- fmt.Sprintf("[%s %s]:%s", time.Now().Format("2006-01-02 15:04:05"), currentUser.Name, string(buf[2:n]))
 		}
 
 		// '/m username' how are your? 私聊
 		if string(buf)[0] == '/' && string(buf)[1:2] == "m" {
 			peer := strings.Split(string(buf[:n]), " ")[1]
+			peer = strings.Trim(peer, "\r\n")
+			fmt.Printf("peer> %q\n", peer)
 			if u, ok := s.OnlineClient.Load(peer); ok {
-				// fmt.Println(u.(*user.User))
-				msg := fmt.Sprintf("[%s %s] %s", time.Now().Format("2006-01-02 15:04:05"), currentUser.Name, strings.Split(string(buf[:n]), " ")[2])
+				msg := fmt.Sprintf("[%s %s]:%s", time.Now().Format("2006-01-02 15:04:05"), currentUser.Name, string(buf[4+len(peer):n]))
 				u.(*user.User).Conn.Write([]byte(msg))
+			} else {
+				msg := peer + " 找不到该用户"
+				currentUser.Conn.Write([]byte(msg + "\n"))
 			}
 
 		}
